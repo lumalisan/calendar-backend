@@ -1,70 +1,115 @@
 const { response } = require('express');
+const Evento = require('../models/Evento');
 
-const getEventos = (req, res = response) => {
+const getEventos = async (req, res = response) => {
+    const eventos = await Evento.find().populate('user', 'name');
+
     res.json({
         ok: true,
-        msg: 'Eventos'
+        eventos
     });
 }
 
-const crearEvento = (req, res = response) => {
-    // let body = req.body;
-    // let event = new Event({
-    //     title: body.title,
-    //     description: body.description,
-    //     price: body.price,
-    //     date: body.date,
-    //     user: body.user
-    // });
+const crearEvento = async (req, res = response) => {
+    const evento = new Evento(req.body);
 
-    // event.save((err, eventSaved) => {
-    //     if (err) {
-    //         return res.status(500).json({
-    //             ok: false,
-    //             err
-    //         });
-    //     }
+    try {
 
-    //     res.json({
-    //         ok: true,
-    //         event: eventSaved
-    //     });
-    // }).populate('user', 'name email');
+        evento.user = req.uid;
 
-    res.json({
-        ok: true,
-        msg: 'Eventos'
-    });
+        const eventoGuardado = await evento.save();
+
+        res.json({
+            ok: true,
+            evento: eventoGuardado
+        });
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado'
+        });
+    }
 }
 
-const actualizarEvento = (req, res = response) => {
-    // let id = req.params.id;
-    // let body = req.body;
-    // Event.findByIdAndUpdate(id, body, { new: true }, (err, eventUpdated) => {
-    //     if (err) {
-    //         return res.status(500).json({
-    //             ok: false,
-    //             err
-    //         });
-    //     }
+const actualizarEvento = async (req, res = response) => {
+    const eventoId = req.params.id;
+    const uid = req.uid;
 
-    //     res.json({
-    //         ok: true,
-    //         event: eventUpdated
-    //     });
-    // }).populate('user', 'name email');
+    try {
+        const evento = await Evento.findById(eventoId);
 
-    res.json({
-        ok: true,
-        msg: 'Eventos'
-    });
+        if (!evento) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'Evento no encontrado'
+            });
+        }
+
+        if(evento.user.toString() !== uid) {
+            return res.status(401).json({
+                ok: false,
+                msg: 'No autorizado'
+            });
+        }
+
+        const nuevoEvento = {
+            ...req.body,
+            user: uid
+        }
+
+        const eventoActualizado = await Evento.findByIdAndUpdate(eventoId, nuevoEvento, { new: true });
+
+        res.json({
+            ok: true,
+            evento: eventoActualizado
+        });
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado'
+        });
+    }
 }
 
-const eliminarEvento = (req, res = response) => {
-    res.json({
-        ok: true,
-        msg: 'Evento eliminado'
-    });
+const eliminarEvento = async (req, res = response) => {
+    const eventoId = req.params.id;
+    const uid = req.uid;
+
+    try {
+        const evento = await Evento.findById(eventoId);
+
+        if (!evento) {
+            return res.status(404).json({
+                ok: false,
+                msg: 'Evento no encontrado'
+            });
+        }
+
+        if(evento.user.toString() !== uid) {
+            return res.status(401).json({
+                ok: false,
+                msg: 'No autorizado'
+            });
+        }
+
+        const eventoEliminado = await Evento.findByIdAndDelete(eventoId);
+
+        res.json({
+            ok: true,
+            evento: eventoEliminado
+        });
+
+    } catch (error) {
+        console.error(error)
+        res.status(500).json({
+            ok: false,
+            msg: 'Error inesperado'
+        });
+    }
 }
 
 module.exports = {
