@@ -22,6 +22,10 @@ app.use(express.json());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/events', require('./routes/events'));
 
+app.get('*', (req, res) => {
+    res.sendFile(__dirname, '/public/index.html');
+});
+
 // Escuchar peticiones en el puerto 4000
 app.listen(process.env.PORT, () => {
     console.log(`Servidor corriendo en el puerto ${process.env.PORT}`);
